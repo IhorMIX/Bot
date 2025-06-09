@@ -7,32 +7,24 @@ using Bot.BLL.Policy;
 
 namespace Bot.BLL.Handlers;
 
-public class UpdateHandler
+public class UpdateHandler(
+    UserStateService stateService,
+    DocumentProcessor docProcessor,
+    PolicyGenerator policyGenerator)
 {
-    private readonly UserStateService _stateService;
-    private readonly DocumentProcessor _docProcessor;
-    private readonly PolicyGenerator _policyGenerator;
-
-    public UpdateHandler(UserStateService stateService, DocumentProcessor docProcessor, PolicyGenerator policyGenerator)
-    {
-        _stateService = stateService;
-        _docProcessor = docProcessor;
-        _policyGenerator = policyGenerator;
-    }
-
     public async Task HandleUpdateAsync(ITelegramBotClient bot, Update update, CancellationToken token)
     {
         if (update.Message is not { } message)
             return;
 
         var chatId = message.Chat.Id;
-        var state = _stateService.GetState(chatId);
+        var state = stateService.GetState(chatId);
 
         if (message.Text == "/start")
         {
-            _stateService.SetState(chatId, BotState.WaitingForPassport);
+            stateService.SetState(chatId, BotState.WaitingForPassport);
             await bot.SendTextMessageAsync(chatId,
-                "Hello! I'll help you get your car insurance.\n\n Please send a photo of your *passport*.",
+                "Hello! I will help you get car insurance.\n\nPlease send a photo of your *passport*.",
                 parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown,
                 cancellationToken: token);
             return;
@@ -45,24 +37,24 @@ public class UpdateHandler
             await bot.DownloadFileAsync(file.FilePath, ms, token);
             ms.Seek(0, SeekOrigin.Begin);
 
-            var extractedText = _docProcessor.ProcessDocuments(ms);
+            var extractedText = docProcessor.ProcessDocuments(ms);
 
             switch (state)
             {
                 case BotState.WaitingForPassport:
-                    _stateService.SetState(chatId, BotState.WaitingForVehicleDoc);
+                    stateService.SetState(chatId, BotState.WaitingForVehicleDoc);
                     await bot.SendTextMessageAsync(chatId,
-                        "Passport received. Recognized text:\n\n" + extractedText +
-                        "\n\nNow send a photo of the *technical passport*.",
+                        "Passport received. Extracted text:\n\n" + extractedText +
+                        "\n\nNow please send a photo of the *vehicle registration certificate*.",
                         parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown,
                         cancellationToken: token);
                     break;
 
                 case BotState.WaitingForVehicleDoc:
-                    _stateService.SetState(chatId, BotState.WaitingForConfirmation);
+                    stateService.SetState(chatId, BotState.WaitingForConfirmation);
                     await bot.SendTextMessageAsync(chatId,
-                        "Technical passport received. Recognized text:\n\n" + extractedText +
-                        "\n\nConfirm that the data is correct.",
+                        "Vehicle document received. Extracted text:\n\n" + extractedText +
+                        "\n\nPlease confirm that the data is correct.",
                         replyMarkup: new ReplyKeyboardMarkup(new[]
                         {
                             new[] { new KeyboardButton("Yes"), new KeyboardButton("No") }
@@ -77,7 +69,7 @@ public class UpdateHandler
 
                 default:
                     await bot.SendTextMessageAsync(chatId,
-                        "Please follow the instructions. Type /start to start over.",
+                        "Please follow the instructions. Type /start to begin again.",
                         cancellationToken: token);
                     break;
             }
@@ -88,14 +80,14 @@ public class UpdateHandler
         switch (state)
         {
             case BotState.WaitingForConfirmation:
-                if (message.Text == "✅ Да")
+                if (message.Text == "Yes")
                 {
-                    _stateService.SetState(chatId, BotState.WaitingForPriceConfirmation);
+                    stateService.SetState(chatId, BotState.WaitingForPriceConfirmation);
                     await bot.SendTextMessageAsync(chatId,
-                        "The price of insurance is *100 USD*. Do you agree?",
+                        "The insurance price is *100 USD*. Do you agree?",
                         replyMarkup: new ReplyKeyboardMarkup(new[]
                         {
-                            new[] { new KeyboardButton("Agree"), new KeyboardButton("Not agree") }
+                            new[] { new KeyboardButton("Agree"), new KeyboardButton("Disagree") }
                         })
                         {
                             ResizeKeyboard = true,
@@ -106,9 +98,9 @@ public class UpdateHandler
                 }
                 else if (message.Text == "No")
                 {
-                    _stateService.SetState(chatId, BotState.WaitingForPassport);
+                    stateService.SetState(chatId, BotState.WaitingForPassport);
                     await bot.SendTextMessageAsync(chatId,
-                        "OK, send the passport photo again.",
+                        "Okay, please send the passport photo again.",
                         cancellationToken: token);
                 }
                 break;
@@ -116,26 +108,26 @@ public class UpdateHandler
             case BotState.WaitingForPriceConfirmation:
                 if (message.Text == "Agree")
                 {
-                    _stateService.SetState(chatId, BotState.Done);
+                    stateService.SetState(chatId, BotState.Done);
 
                     // TODO:
-                    var policy = _policyGenerator.GeneratePolicy("Ivan Ivanov", "WBA1234567890XYZ");
+                    var policy = policyGenerator.GeneratePolicy("Ivan Ivanov", "WBA1234567890XYZ");
 
                     await bot.SendTextMessageAsync(chatId,
                         "Congratulations! Here is your insurance policy:\n\n" + policy,
                         cancellationToken: token);
                 }
-                else if (message.Text == "Not agree")
+                else if (message.Text == "Disagree")
                 {
                     await bot.SendTextMessageAsync(chatId,
-                        "Unfortunately, this is the only available price. If you change your mind, enter /start.",
+                        "Unfortunately, this is the only available price. If you change your mind, type /start.",
                         cancellationToken: token);
                 }
                 break;
 
             default:
                 await bot.SendTextMessageAsync(chatId,
-                    "Please follow the instructions. Type /start to start over.",
+                    "Please follow the instructions. Type /start to begin again.",
                     cancellationToken: token);
                 break;
         }
