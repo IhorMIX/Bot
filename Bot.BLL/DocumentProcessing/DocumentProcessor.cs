@@ -17,7 +17,7 @@ public class DocumentProcessor
         }
         catch (Exception ex)
         {
-            return $"❌ Error OCR: {ex.Message}";
+            return $"Error OCR: {ex.Message}";
         }
     }
 
