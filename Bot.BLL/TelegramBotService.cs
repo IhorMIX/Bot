@@ -1,55 +1,47 @@
 using Telegram.Bot;
 using Telegram.Bot.Polling;
-using Telegram.Bot.Types;
+using Telegram.Bot.Types.Enums;
+using Bot.BLL.Handlers;
+using Bot.BLL.States;
+using Bot.BLL.DocumentProcessing;
+using Bot.BLL.Policy;
 
 namespace Bot.BLL;
 
-public class TelegramBotService(string token)
+public class TelegramBotService
 {
-    private readonly TelegramBotClient _botClient = new TelegramBotClient(token);
+    private readonly TelegramBotClient _botClient;
+    private readonly UpdateHandler _updateHandler;
+    private CancellationTokenSource _cts;
+
+    public TelegramBotService(string token)
+    {
+        _botClient = new TelegramBotClient(token);
+
+        var stateService = new UserStateService();
+        var docProcessor = new DocumentProcessor();
+        var policyGenerator = new PolicyGenerator();
+
+        _updateHandler = new UpdateHandler(stateService, docProcessor, policyGenerator);
+    }
 
     public void Start()
     {
-        var cts = new CancellationTokenSource();
+        _cts = new CancellationTokenSource();
 
         var receiverOptions = new ReceiverOptions
         {
-            AllowedUpdates = []
+            AllowedUpdates = Array.Empty<UpdateType>() // все обновления
         };
 
         _botClient.StartReceiving(
-            HandleUpdateAsync,
+            _updateHandler.HandleUpdateAsync,
             HandleErrorAsync,
             receiverOptions,
-            cancellationToken: cts.Token
+            cancellationToken: _cts.Token
         );
 
         Console.WriteLine("Telegram bot started...");
-    }
-
-    private async Task HandleUpdateAsync(ITelegramBotClient bot, Update update, CancellationToken token)
-    {
-        if (update.Message is not { } message)
-            return;
-
-        var chatId = message.Chat.Id;
-
-        if (message.Text == "/start")
-        {
-            await _botClient.SendTextMessageAsync(
-                chatId: chatId,
-                text: "Hi! I will help you get car insurance. Please send a photo of your passport.",
-                cancellationToken: token
-            );
-        }
-        else
-        {
-            await _botClient.SendTextMessageAsync(
-                chatId: chatId,
-                text: "Send a photo of your passport and registration certificate.",
-                cancellationToken: token
-            );
-        }
     }
 
     private Task HandleErrorAsync(ITelegramBotClient bot, Exception exception, CancellationToken token)
@@ -57,4 +49,6 @@ public class TelegramBotService(string token)
         Console.WriteLine($"Error: {exception.Message}");
         return Task.CompletedTask;
     }
+
+    public void Stop() => _cts.Cancel();
 }
