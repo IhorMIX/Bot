@@ -1,4 +1,5 @@
-using System.Text.RegularExpressions;
+using System;
+using System.IO;
 using Tesseract;
 
 namespace Bot.BLL.DocumentProcessing;
@@ -20,7 +21,6 @@ public class DocumentProcessor
             return $"Error OCR: {ex.Message}";
         }
     }
-
 
     private byte[] ReadStream(Stream input)
     {
