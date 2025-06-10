@@ -1,15 +1,18 @@
+using Bot.BLL;
+
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSingleton<TelegramBotService>(provider =>
+{
+    var token = builder.Configuration["TelegramBotToken"];
+    return new TelegramBotService(token);
+});
+
 
 var app = builder.Build();
 
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+var telegramService = app.Services.GetRequiredService<TelegramBotService>();
+telegramService.Start();
 
-app.UseHttpsRedirection();
+app.MapGet("/", () => "Telegram Bot is running...");
 app.Run();

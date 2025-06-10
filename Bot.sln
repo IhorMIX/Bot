@@ -2,7 +2,7 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bot.Web", "Bot.Web\Bot.Web.csproj", "{6E80D696-5535-4CF5-85AE-0264F358DDFA}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bot.Service", "Bot.Service\Bot.Service.csproj", "{3F7F46F5-D55B-4A85-8A57-44D000BD1CD1}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bot.BLL", "Bot.BLL\Bot.BLL.csproj", "{3F7F46F5-D55B-4A85-8A57-44D000BD1CD1}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

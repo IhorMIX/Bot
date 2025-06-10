@@ -6,4 +6,10 @@
         <Nullable>enable</Nullable>
     </PropertyGroup>
 
+    <ItemGroup>
+      <PackageReference Include="Mindee" Version="3.28.0" />
+      <PackageReference Include="Telegram.Bot" Version="18.1.7" />
+      <PackageReference Include="Tesseract" Version="5.2.0" />
+    </ItemGroup>
+
 </Project>
