@@ -1,3 +1,5 @@
+using System;
+using System.Threading;
 using Telegram.Bot;
 using Telegram.Bot.Polling;
 using Telegram.Bot.Types.Enums;
@@ -31,7 +33,7 @@ public class TelegramBotService
 
         var receiverOptions = new ReceiverOptions
         {
-            AllowedUpdates = Array.Empty<UpdateType>() // все обновления
+            AllowedUpdates = Array.Empty<UpdateType>()
         };
 
         _botClient.StartReceiving(
@@ -46,7 +48,11 @@ public class TelegramBotService
 
     private Task HandleErrorAsync(ITelegramBotClient bot, Exception exception, CancellationToken token)
     {
-        Console.WriteLine($"Error: {exception.Message}");
+        var errorMessage = exception.Message;
+        var exceptionType = exception.GetType().Name;
+        Console.WriteLine($"Error type: {exceptionType}");
+        Console.WriteLine($"Error message: {errorMessage}");
+        Console.WriteLine($"Stack trace: {exception.StackTrace}");
         return Task.CompletedTask;
     }
 
