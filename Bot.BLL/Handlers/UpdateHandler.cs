@@ -1,3 +1,7 @@
+using System.IO;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.ReplyMarkups;
@@ -12,6 +16,14 @@ public class UpdateHandler(
     DocumentProcessor docProcessor,
     PolicyGenerator policyGenerator)
 {
+    private string EscapeMarkdownV1(string text)
+    {
+        return text
+            .Replace("_", "\\_")
+            .Replace("*", "\\*")
+            .Replace("`", "\\`")
+            .Replace("[", "\\[");
+    }
     public async Task HandleUpdateAsync(ITelegramBotClient bot, Update update, CancellationToken token)
     {
         if (update.Message is not { } message)
@@ -29,7 +41,7 @@ public class UpdateHandler(
                 cancellationToken: token);
             return;
         }
-        
+
         if (message.Photo != null && message.Photo.Any())
         {
             var file = await bot.GetFileAsync(message.Photo.Last().FileId, cancellationToken: token);
@@ -42,18 +54,20 @@ public class UpdateHandler(
             switch (state)
             {
                 case BotState.WaitingForPassport:
+                    stateService.SetUserData(chatId, "passportText", extractedText);
                     stateService.SetState(chatId, BotState.WaitingForVehicleDoc);
                     await bot.SendTextMessageAsync(chatId,
-                        "Passport received. Extracted text:\n\n" + extractedText +
+                        "Passport received. Extracted text:\n\n" + EscapeMarkdownV1(extractedText) +
                         "\n\nNow please send a photo of the *vehicle registration certificate*.",
                         parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown,
                         cancellationToken: token);
                     break;
 
                 case BotState.WaitingForVehicleDoc:
+                    stateService.SetUserData(chatId, "vehicleDocText", extractedText);
                     stateService.SetState(chatId, BotState.WaitingForConfirmation);
                     await bot.SendTextMessageAsync(chatId,
-                        "Vehicle document received. Extracted text:\n\n" + extractedText +
+                        "Vehicle document received. Extracted text:\n\n" + EscapeMarkdownV1(extractedText) +
                         "\n\nPlease confirm that the data is correct.",
                         replyMarkup: new ReplyKeyboardMarkup(new[]
                         {
@@ -76,12 +90,21 @@ public class UpdateHandler(
 
             return;
         }
-        
+
         switch (state)
         {
             case BotState.WaitingForConfirmation:
                 if (message.Text == "Yes")
                 {
+                    var passportText = stateService.GetUserData(chatId, "passportText");
+                    var vehicleDocText = stateService.GetUserData(chatId, "vehicleDocText");
+
+                    var parser = new DocumentParser();
+                    var (fullName, vin) = parser.ParseData(passportText, vehicleDocText);
+
+                    stateService.SetUserData(chatId, "clientName", fullName);
+                    stateService.SetUserData(chatId, "vin", vin);
+
                     stateService.SetState(chatId, BotState.WaitingForPriceConfirmation);
                     await bot.SendTextMessageAsync(chatId,
                         "The insurance price is *100 USD*. Do you agree?",
@@ -110,8 +133,10 @@ public class UpdateHandler(
                 {
                     stateService.SetState(chatId, BotState.Done);
 
-                    // TODO:
-                    var policy = policyGenerator.GeneratePolicy("Ivan Ivanov", "WBA1234567890XYZ");
+                    var clientName = stateService.GetUserData(chatId, "clientName") ?? "Unknown Name";
+                    var vin = stateService.GetUserData(chatId, "vin") ?? "Unknown VIN";
+
+                    var policy = policyGenerator.GeneratePolicy(clientName, vin);
 
                     await bot.SendTextMessageAsync(chatId,
                         "Congratulations! Here is your insurance policy:\n\n" + policy,

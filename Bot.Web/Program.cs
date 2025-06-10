@@ -8,6 +8,7 @@ builder.Services.AddSingleton<TelegramBotService>(provider =>
     return new TelegramBotService(token);
 });
 
+
 var app = builder.Build();
 
 var telegramService = app.Services.GetRequiredService<TelegramBotService>();
