@@ -13,13 +13,16 @@ public class DocumentParser
 
     private string ParseFullName(string text)
     {
-        var regex = new Regex(@"([A-Z][a-z]+)\s([A-Z][a-z]+)");
+        text = text.Replace("\n", " ").Replace("\r", " ");
+
+        var regex = new Regex(@"\b([A-ZА-ЯІЇЄҐ]{2,})\s+([A-ZА-ЯІЇЄҐ]{2,})\b", RegexOptions.IgnoreCase);
         var match = regex.Match(text);
         if (match.Success)
             return match.Value.Trim();
 
         return "Unknown Name";
     }
+
 
     private string ParseVIN(string text)
     {
