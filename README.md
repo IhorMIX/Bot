@@ -48,7 +48,7 @@ The bot receives photos of passports and vehicle documents, performs OCR (Englis
   C:\Program Files\Tesseract-OCR\tessdata
 
 4. Insert your Telegram bot token in the TelegramBotService constructor:
-
+    ```csharp
    var botService = new TelegramBotService("YOUR_TELEGRAM_BOT_TOKEN");
    botService.Start();
 
