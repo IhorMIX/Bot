@@ -11,10 +11,10 @@ public class DocumentProcessor
         try
         {
             var tessDataPath = @"C:\Program Files\Tesseract-OCR\tessdata";
-            using var engine = new TesseractEngine(tessDataPath, "eng", EngineMode.Default);
+            using var engine = new TesseractEngine(tessDataPath, "ukr+eng", EngineMode.Default);
             using var img = Pix.LoadFromMemory(ReadStream(imageStream));
             using var page = engine.Process(img);
-            return page.GetText();
+            return page.GetText().Replace("\n", " ").Replace("\r", "").Trim();
         }
         catch (Exception ex)
         {
