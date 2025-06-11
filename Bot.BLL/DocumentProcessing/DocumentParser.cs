@@ -15,7 +15,7 @@ public class DocumentParser
     {
         text = text.Replace("\n", " ").Replace("\r", " ");
 
-        var regex = new Regex(@"\b([A-ZА-ЯІЇЄҐ]{2,})\s+([A-ZА-ЯІЇЄҐ]{2,})\b", RegexOptions.IgnoreCase);
+        var regex = new Regex(@"\b([A-ZА-ЯІЇЄҐ][a-zа-яіїєґ']{1,})\s+([A-ZА-ЯІЇЄҐ][a-zа-яіїєґ']{1,})\b", RegexOptions.IgnoreCase | RegexOptions.Multiline);
         var match = regex.Match(text);
         if (match.Success)
             return match.Value.Trim();
