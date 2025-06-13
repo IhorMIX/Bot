@@ -10,8 +10,9 @@ public class DocumentProcessor
     {
         try
         {
-            var tessDataPath = @"C:\Program Files\Tesseract-OCR\tessdata";
-            using var engine = new TesseractEngine(tessDataPath, "ukr+eng", EngineMode.Default);
+            var tessDataPath = Path.Combine(AppContext.BaseDirectory, "tessdata");
+            using var engine = new TesseractEngine(tessDataPath, "eng+ukr", EngineMode.Default);
+
             using var img = Pix.LoadFromMemory(ReadStream(imageStream));
             using var page = engine.Process(img);
             return page.GetText().Replace("\n", " ").Replace("\r", "").Trim();
