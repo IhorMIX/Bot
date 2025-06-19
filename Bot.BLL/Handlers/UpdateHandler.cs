@@ -1,7 +1,3 @@
-using System.IO;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.ReplyMarkups;
@@ -33,25 +29,22 @@ public class UpdateHandler(
         var chatId = message.Chat.Id;
         var state = stateService.GetState(chatId);
         
-        if (message.Text != null)
+        if (!string.IsNullOrWhiteSpace(message.Text))
         {
             var lowerText = message.Text.ToLowerInvariant();
 
-            if (lowerText.Contains("що буде з моїми документами") || lowerText.Contains("what will happen to my documents") ||
-                lowerText.Contains("це точно безпечно") || lowerText.Contains("it's definitely safe") ||
-                lowerText.Contains("де вони зберігаються") || lowerText.Contains("where are they stored") ||
-                lowerText.Contains("зберігання") || lowerText.Contains("storage") ||
-                lowerText.Contains("використання") || lowerText.Contains("using") ||
-                lowerText.Contains("навіщо") || lowerText.Contains("why") ||
-                lowerText.Contains("чи безпечно") || lowerText.Contains("is it safe") ||
-                lowerText.Contains("чи зберігаються документи") || lowerText.Contains("Are documents kept?") ||
-                lowerText.Contains("це афера") || lowerText.Contains("this is a scam") ||
-                lowerText.Contains("це точно не обман") || lowerText.Contains("this is definitely not a scam"))
+            var concerns = new[] {
+                "що буде", "документи", "зберігаються", "зберігання", "використання", 
+                "навіщо", "чи безпечно", "безпечно", "афера", "обман", "це точно", "scam", "safe" , "using",
+                "document", "why", "storage"
+            };
+
+            if (concerns.Any(keyword => lowerText.Contains(keyword)))
             {
                 await bot.SendTextMessageAsync(chatId,
-                    "Your documents are processed *only* for the purpose of forming an insurance policy. They are *not saved*, " +
-                    "*not transferred* to third parties and *automatically deleted* after the registration is completed.\n\n" + 
-                    "Please, please continue the registration - send a photo of your passport or certificate of car registration.",
+                    "Your documents are processed *only* for the purpose of issuing an insurance policy. " +
+                    "They are *not stored*, " + "*not transferred* to third parties and *automatically deleted* after the registration is complete.\n\n" +
+                    "Please continue the registration process - send a photo of your passport or car registration certificate.",
                     parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown,
                     cancellationToken: token);
                 return;
