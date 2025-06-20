@@ -10,22 +10,42 @@ public class DocumentParser
         var vin = ParseVin(vehicleDocText);
         return (fullName, vin);
     }
-
+    
     private string ParseFullName(string text)
     {
-        var regex = new Regex(@"P<\s*(.+?)<<", RegexOptions.IgnoreCase);
-
-        var match = regex.Match(text);
-        if (match.Success)
+        var surnameMatch = Regex.Match(text, @"(Surname|Last Name):\s*(.+)", RegexOptions.IgnoreCase);
+        if (!surnameMatch.Success)
         {
-            var result = match.Groups[1].Value;
-            result = Regex.Replace(result, @"[<\s]+", " ").Trim();
-            return result;
+            surnameMatch = Regex.Match(text, @"Name:\s*(.+)", RegexOptions.IgnoreCase);
         }
+        
+        var givenNameMatch = Regex.Match(text, @"Given Name\(s\):\s*(.+)", RegexOptions.IgnoreCase);
+        if (!givenNameMatch.Success)
+        {
+            givenNameMatch = Regex.Match(text, @"Name:\s*(.+)", RegexOptions.IgnoreCase);
+        }
+
+        string surname = surnameMatch.Success ? surnameMatch.Groups[2].Value.Trim() : null;
+        string givenName = givenNameMatch.Success ? givenNameMatch.Groups[1].Value.Trim() : null;
+        
+        if (!string.IsNullOrEmpty(givenName) && !string.IsNullOrEmpty(surname))
+        {
+            return $"{givenName} {surname}";
+        }
+        
+        if (!string.IsNullOrEmpty(surname))
+        {
+            return surname;
+        }
+        
+        if (!string.IsNullOrEmpty(givenName))
+        {
+            return givenName;
+        }
+
         return "Unknown Name";
     }
-
-
+    
     private string ParseVin(string text)
     {
         var vinKeywords = new[] { "VIN", "ідентифікаційний номер", "ідентифікаційний номер КТЗ" };

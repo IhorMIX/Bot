@@ -38,13 +38,13 @@ public class UpdateHandler(
                 "навіщо", "чи безпечно", "безпечно", "афера", "обман", "це точно", "scam", "safe" , "using",
                 "document", "why", "storage"
             };
-
             if (concerns.Any(keyword => lowerText.Contains(keyword)))
             {
                 await bot.SendTextMessageAsync(chatId,
                     "Your documents are processed *only* for the purpose of issuing an insurance policy. " +
-                    "They are *not stored*, " + "*not transferred* to third parties and *automatically deleted* after the registration is complete.\n\n" +
-                    "Please continue the registration process - send a photo of your passport or car registration certificate.",
+                    "They are *not stored*, " +
+                    "*not transferred* to third parties and *automatically deleted* after the registration is complete.\n\n" +
+                    "Please continue the registration process by sending a photo of your passport or car registration certificate.",
                     parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown,
                     cancellationToken: token);
                 return;
@@ -68,50 +68,73 @@ public class UpdateHandler(
             await bot.DownloadFileAsync(file.FilePath, ms, token);
             ms.Seek(0, SeekOrigin.Begin);
 
-            var extractedText = docProcessor.ProcessDocuments(ms);
-
-            switch (state)
+            var extractedText = state switch
             {
-                case BotState.WaitingForPassport:
-                    stateService.SetUserData(chatId, "passportText", extractedText);
-                    stateService.SetState(chatId, BotState.WaitingForVehicleDoc);
-                    await bot.SendTextMessageAsync(chatId,
-                        "Passport received. Extracted text:\n\n" + EscapeMarkdownV1(extractedText) +
-                        "\n\nNow please send a photo of the *vehicle registration certificate*.",
-                        parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown,
-                        cancellationToken: token);
-                    break;
+                BotState.WaitingForPassport => await docProcessor.ProcessPassportAsync(ms),
+                BotState.WaitingForVehicleDoc => await docProcessor.ProcessVehicleDocAsync(ms),
+                _ => throw new InvalidOperationException("Unexpected state")
+            };
 
-                case BotState.WaitingForVehicleDoc:
-                    stateService.SetUserData(chatId, "vehicleDocText", extractedText);
-                    stateService.SetState(chatId, BotState.WaitingForConfirmation);
-                    await bot.SendTextMessageAsync(chatId,
-                        "Vehicle document received. Extracted text:\n\n" + EscapeMarkdownV1(extractedText) +
-                        "\n\nPlease confirm that the data is correct.",
-                        replyMarkup: new ReplyKeyboardMarkup(new[]
-                        {
-                            new[] { new KeyboardButton("Yes"), new KeyboardButton("No") }
-                        })
-                        {
-                            ResizeKeyboard = true,
-                            OneTimeKeyboard = true
-                        },
-                        parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown,
-                        cancellationToken: token);
-                    break;
-
-                default:
-                    await bot.SendTextMessageAsync(chatId,
-                        "Please follow the instructions. Type /start to begin again.",
-                        cancellationToken: token);
-                    break;
-            }
+            stateService.SetUserData(chatId, state == BotState.WaitingForPassport ? "passportText" : "vehicleDocText", extractedText);
+            
+            await bot.SendTextMessageAsync(chatId,
+                $"Extracted text:\n\n{EscapeMarkdownV1(extractedText)}\n\nIs this information correct?",
+                replyMarkup: new ReplyKeyboardMarkup(new[]
+                {
+                    new[] { new KeyboardButton("Yes"), new KeyboardButton("No") }
+                })
+                {
+                    ResizeKeyboard = true,
+                    OneTimeKeyboard = true
+                },
+                parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown,
+                cancellationToken: token);
 
             return;
         }
 
         switch (state)
         {
+            case BotState.WaitingForPassport:
+            case BotState.WaitingForVehicleDoc:
+                if (message.Text == "Yes")
+                {
+                    if (state == BotState.WaitingForPassport)
+                    {
+                        stateService.SetState(chatId, BotState.WaitingForVehicleDoc);
+                        await bot.SendTextMessageAsync(chatId,
+                            "Great! Now please send a photo of the *vehicle registration certificate*.",
+                            parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown,
+                            cancellationToken: token);
+                    }
+                    else
+                    {
+                        stateService.SetState(chatId, BotState.WaitingForConfirmation);
+                        await bot.SendTextMessageAsync(chatId,
+                            "Great! Vehicle document processed successfully.\n\n" +
+                            "Please confirm the insurance information is correct to proceed.",
+                            replyMarkup: new ReplyKeyboardMarkup(new[]
+                            {
+                                new[] { new KeyboardButton("Yes"), new KeyboardButton("No") }
+                            })
+                            {
+                                ResizeKeyboard = true,
+                                OneTimeKeyboard = true
+                            },
+                            parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown,
+                            cancellationToken: token);
+                    }
+                }
+                else if (message.Text == "No")
+                {
+                    await bot.SendTextMessageAsync(chatId,
+                        state == BotState.WaitingForPassport
+                            ? "Please send the passport photo again."
+                            : "Please send the vehicle registration certificate again.",
+                        cancellationToken: token);
+                }
+                break;
+
             case BotState.WaitingForConfirmation:
                 if (message.Text == "Yes")
                 {
@@ -142,7 +165,7 @@ public class UpdateHandler(
                 {
                     stateService.SetState(chatId, BotState.WaitingForPassport);
                     await bot.SendTextMessageAsync(chatId,
-                        "Okay, please send the passport photo again.",
+                        "Okay, please start over by sending the passport photo again.",
                         cancellationToken: token);
                 }
                 break;

@@ -1,32 +1,73 @@
-using System;
-using System.IO;
-using Tesseract;
+using Mindee;
+using Mindee.Input;
+using Mindee.Http;
+using Mindee.Product.Passport;
+using Mindee.Product.Generated;
 
 namespace Bot.BLL.DocumentProcessing;
 
-public class DocumentProcessor
+public class DocumentProcessor(string apiKey)
 {
-    public string ProcessDocuments(Stream imageStream)
+    private readonly MindeeClient _mindeeClient = new(apiKey);
+
+    public async Task<string> ProcessPassportAsync(Stream imageStream)
     {
+        string tempFilePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString() + ".png");
+
         try
         {
-            var tessDataPath = Path.Combine(AppContext.BaseDirectory, "tessdata");
-            using var engine = new TesseractEngine(tessDataPath, "eng+ukr", EngineMode.Default);
+            await using (var fileStream = File.Create(tempFilePath))
+            {
+                await imageStream.CopyToAsync(fileStream);
+            }
 
-            using var img = Pix.LoadFromMemory(ReadStream(imageStream));
-            using var page = engine.Process(img);
-            return page.GetText().Replace("\n", " ").Replace("\r", "").Trim();
+            var input = new LocalInputSource(tempFilePath);
+
+            var response = await _mindeeClient.ParseAsync<PassportV1>(input);
+
+            var prediction = response.Document?.Inference?.Prediction;
+            return prediction?.ToString() ?? "Error: no passport data";
         }
-        catch (Exception ex)
+        finally
         {
-            return $"Error OCR: {ex.Message}";
+            if (File.Exists(tempFilePath))
+            {
+                File.Delete(tempFilePath);
+            }
         }
     }
 
-    private byte[] ReadStream(Stream input)
+    public async Task<string> ProcessVehicleDocAsync(Stream imageStream)
     {
-        using var ms = new MemoryStream();
-        input.CopyTo(ms);
-        return ms.ToArray();
+        var tempFilePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString() + ".png");
+
+        try
+        {
+            await using (var fileStream = File.Create(tempFilePath))
+            {
+                await imageStream.CopyToAsync(fileStream);
+            }
+            
+            var input = new LocalInputSource(tempFilePath);
+
+            var customEndpoint = new CustomEndpoint(
+                endpointName: "vehicle_identification_document",
+                accountName: "yukinon",
+                version: "1"
+            );
+
+            var response = await _mindeeClient.EnqueueAndParseAsync<GeneratedV1>(input, customEndpoint);
+
+            var prediction = response.Document?.Inference?.Prediction;
+            return prediction?.ToString() ?? "Error: no vehicle data";
+        }
+        finally
+        {
+            if (File.Exists(tempFilePath))
+            {
+                File.Delete(tempFilePath);
+            }
+        }
     }
 }
+
