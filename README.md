@@ -1,6 +1,6 @@
 # Passport & Vehicle Document OCR Telegram Bot
 
-A Telegram bot that extracts full name and VIN from photos of passports and vehicle registration certificates using Tesseract OCR and C#.
+A Telegram bot that extracts full name and VIN from photos of passports and vehicle registration certificates using Mindee OCR and C#.
 
 ---
 
@@ -12,7 +12,7 @@ The bot receives photos of passports and vehicle documents, performs OCR (Englis
 
 ## Architecture & Modules
 
-- **DocumentProcessor** — processes images and performs OCR using Tesseract.
+- **DocumentProcessor** — processes images and performs OCR using Mindee.
 - **DocumentParser** — parses full name and VIN from extracted text using regex.
 - **UpdateHandler** — handles Telegram messages and manages user states.
 - **UserStateService** — stores user states and data.
@@ -21,15 +21,20 @@ The bot receives photos of passports and vehicle documents, performs OCR (Englis
 
 ---
 
+## OCR Providers
+- International Passports
+  - Endpoint: `https://api.mindee.net/v1/products/mindee/passport/v1/predict`
+- Vehicle Identification Document
+  - Custom endpoint: `https://api.mindee.net/v1/products/yukinon/vehicle_identification_document/v1/predict_async`
+
+---
+
 ## Dependencies
 
 - [.NET 8.0+](https://dotnet.microsoft.com/en-us/download)
 - NuGet packages:
   - `Telegram.Bot`
-  - `Tesseract`
-- Tesseract language data files (download and place in the `tessdata` folder):
-  - [eng.traineddata](https://github.com/tesseract-ocr/tessdata/raw/main/eng.traineddata)
-  - [ukr.traineddata](https://github.com/tesseract-ocr/tessdata/raw/main/ukr.traineddata)
+  - `Mindee`
 
 ---
 
@@ -41,16 +46,12 @@ The bot receives photos of passports and vehicle documents, performs OCR (Englis
 
    ```bash
    dotnet add package Telegram.Bot
-   dotnet add package Tesseract
+   dotnet add package Mindee
 
-3. Download the Tesseract language files and place them in the directory:
-
-  C:\Program Files\Tesseract-OCR\tessdata
-
-4. Insert your Telegram bot token in the TelegramBotService constructor:
+3. Insert your tokens in appsettings.json:
     ```csharp
-   var botService = new TelegramBotService("YOUR_TELEGRAM_BOT_TOKEN");
-   botService.Start();
+   "TelegramBotToken": "YOUR_TELEGRAM_BOT_TOKEN",
+   "MindeeApiKey": "YOUR_MINDEE_API_KEY"
 
 5. Run the application.
 
