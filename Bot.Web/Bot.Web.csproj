@@ -8,25 +8,19 @@
 
     <ItemGroup>
         <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="8.0.2"/>
+        <PackageReference Include="Mindee" Version="3.28.0" />
         <PackageReference Include="Swashbuckle.AspNetCore" Version="6.4.0"/>
     </ItemGroup>
 
     <ItemGroup>
       <ProjectReference Include="..\Bot.BLL\Bot.BLL.csproj" />
     </ItemGroup>
-
+    
     <ItemGroup>
-      <ProjectReference Include="..\Bot.BLL\Bot.BLL.csproj" />
-    </ItemGroup>
-
-    <ItemGroup>
-        <None Include="tessdata\**\*.*">
+        <None Update="appsettings.json">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </None>
     </ItemGroup>
 
-    <ItemGroup>
-      <Folder Include="tessdata\" />
-    </ItemGroup>
 
 </Project>

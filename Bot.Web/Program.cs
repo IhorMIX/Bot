@@ -5,9 +5,9 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddSingleton<TelegramBotService>(provider =>
 {
     var token = builder.Configuration["TelegramBotToken"];
-    return new TelegramBotService(token);
+    var mindeeApiKey = builder.Configuration["MindeeApiKey"];
+    return new TelegramBotService(token, mindeeApiKey);
 });
-
 
 var app = builder.Build();
 

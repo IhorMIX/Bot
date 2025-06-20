@@ -16,12 +16,12 @@ public class TelegramBotService
     private readonly UpdateHandler _updateHandler;
     private CancellationTokenSource _cts;
 
-    public TelegramBotService(string token)
+    public TelegramBotService(string token, string mindeeApiKey)
     {
         _botClient = new TelegramBotClient(token);
 
         var stateService = new UserStateService();
-        var docProcessor = new DocumentProcessor();
+        var docProcessor = new DocumentProcessor(mindeeApiKey);
         var policyGenerator = new PolicyGenerator();
 
         _updateHandler = new UpdateHandler(stateService, docProcessor, policyGenerator);
