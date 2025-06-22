@@ -7,62 +7,33 @@ public class DocumentParser
     public (string FullName, string VIN) ParseData(string passportText, string vehicleDocText)
     {
         var fullName = ParseFullName(passportText);
-        var vin = ParseVin(vehicleDocText);
+        var vin = ParseVIN(vehicleDocText);
         return (fullName, vin);
     }
-    
+
     private string ParseFullName(string text)
     {
-        var surnameMatch = Regex.Match(text, @"(Surname|Last Name):\s*(.+)", RegexOptions.IgnoreCase);
-        if (!surnameMatch.Success)
-        {
-            surnameMatch = Regex.Match(text, @"Name:\s*(.+)", RegexOptions.IgnoreCase);
-        }
+        text = text.Replace("\n", " ").Replace("\r", " ");
         
-        var givenNameMatch = Regex.Match(text, @"Given Name\(s\):\s*(.+)", RegexOptions.IgnoreCase);
-        if (!givenNameMatch.Success)
-        {
-            givenNameMatch = Regex.Match(text, @"Name:\s*(.+)", RegexOptions.IgnoreCase);
-        }
-
-        string surname = surnameMatch.Success ? surnameMatch.Groups[2].Value.Trim() : null;
-        string givenName = givenNameMatch.Success ? givenNameMatch.Groups[1].Value.Trim() : null;
+        var regex = new Regex(@"\b([A-ZА-ЯІЇЄҐ][a-zа-яіїєґ']{1,})\s+([A-ZА-ЯІЇЄҐ][a-zа-яіїєґ']{1,})\b", RegexOptions.IgnoreCase);
+        var match = regex.Match(text);
+        if (match.Success)
+            return match.Value.Trim();
         
-        if (!string.IsNullOrEmpty(givenName) && !string.IsNullOrEmpty(surname))
-        {
-            return $"{givenName} {surname}";
-        }
-        
-        if (!string.IsNullOrEmpty(surname))
-        {
-            return surname;
-        }
-        
-        if (!string.IsNullOrEmpty(givenName))
-        {
-            return givenName;
-        }
+        var altMatch = Regex.Match(text, @"(surname|name)\s*[:\-]?\s*([A-Z][a-z]+)", RegexOptions.IgnoreCase);
+        if (altMatch.Success)
+            return altMatch.Groups[2].Value;
 
         return "Unknown Name";
     }
-    
-    private string ParseVin(string text)
+
+    private string ParseVIN(string text)
     {
-        var vinKeywords = new[] { "VIN", "ідентифікаційний номер", "ідентифікаційний номер КТЗ" };
-        foreach (var key in vinKeywords)
-        {
-            var pattern = $@"{key}[^A-Z0-9]*([A-HJ-NPR-Z0-9]{{16,17}})";
-            var match = Regex.Match(text, pattern, RegexOptions.IgnoreCase);
-            if (match.Success)
-                return match.Groups[1].Value;
-        }
-        
-        var fallbackRegex = new Regex(@"\b([A-HJ-NPR-Z0-9]{16,17})\b");
-        var fallbackMatch = fallbackRegex.Match(text);
-        if (fallbackMatch.Success)
-            return fallbackMatch.Value;
+        var regex = new Regex(@"\b([A-HJ-NPR-Z0-9]{17})\b");
+        var match = regex.Match(text);
+        if (match.Success)
+            return match.Value.Trim();
 
         return "Unknown VIN";
     }
-
 }
