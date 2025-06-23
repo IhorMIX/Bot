@@ -1,3 +1,4 @@
+using System.Globalization;
 using Mindee;
 using Mindee.Input;
 using Mindee.Http;
@@ -9,6 +10,20 @@ namespace Bot.BLL.DocumentProcessing;
 public class DocumentProcessor(string apiKey)
 {
     private readonly MindeeClient _mindeeClient = new(apiKey);
+
+    private string CleanOutput(string rawText)
+    {
+        var lines = rawText.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+        var cleanedLines = lines
+            .Select(line =>
+            {
+                var cleaned = line.TrimStart(':');
+                cleaned = cleaned.Replace(":value:", "").Trim();
+                return cleaned;
+            });
+    
+        return string.Join('\n', cleanedLines);
+    }
 
     public async Task<string> ProcessPassportAsync(Stream imageStream)
     {
@@ -26,7 +41,7 @@ public class DocumentProcessor(string apiKey)
             var response = await _mindeeClient.ParseAsync<PassportV1>(input);
 
             var prediction = response.Document?.Inference?.Prediction;
-            return prediction?.ToString() ?? "Error: no passport data";
+            return CleanOutput(prediction?.ToString() ?? "Error: no passport data");
         }
         finally
         {
@@ -59,7 +74,7 @@ public class DocumentProcessor(string apiKey)
             var response = await _mindeeClient.EnqueueAndParseAsync<GeneratedV1>(input, customEndpoint);
 
             var prediction = response.Document?.Inference?.Prediction;
-            return prediction?.ToString() ?? "Error: no vehicle data";
+            return CleanOutput(prediction?.ToString() ?? "Error: no vehicle data");
         }
         finally
         {
