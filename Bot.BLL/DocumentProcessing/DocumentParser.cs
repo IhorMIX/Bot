@@ -13,16 +13,31 @@ public class DocumentParser
 
     private string ParseFullName(string text)
     {
-        text = text.Replace("\n", " ").Replace("\r", " ");
+        text = text.Replace("\r", "").Trim();
+        
+        var lines = text.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+        string? givenName = null;
+        string? surname = null;
+
+        foreach (var line in lines)
+        {
+            if (line.StartsWith("Given Name", StringComparison.OrdinalIgnoreCase))
+            {
+                givenName = line.Split(':').Last().Trim();
+            }
+            else if (line.StartsWith("Surname", StringComparison.OrdinalIgnoreCase))
+            {
+                surname = line.Split(':').Last().Trim();
+            }
+        }
+
+        if (!string.IsNullOrEmpty(givenName) && !string.IsNullOrEmpty(surname))
+            return $"{givenName} {surname}";
         
         var regex = new Regex(@"\b([A-ZА-ЯІЇЄҐ][a-zа-яіїєґ']{1,})\s+([A-ZА-ЯІЇЄҐ][a-zа-яіїєґ']{1,})\b", RegexOptions.IgnoreCase);
         var match = regex.Match(text);
         if (match.Success)
             return match.Value.Trim();
-        
-        var altMatch = Regex.Match(text, @"(surname|name)\s*[:\-]?\s*([A-Z][a-z]+)", RegexOptions.IgnoreCase);
-        if (altMatch.Success)
-            return altMatch.Groups[2].Value;
 
         return "Unknown Name";
     }

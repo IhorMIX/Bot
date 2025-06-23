@@ -36,7 +36,7 @@ public class UpdateHandler(
             var concerns = new[] {
                 "що буде", "документи", "зберігаються", "зберігання", "використання", 
                 "навіщо", "чи безпечно", "безпечно", "афера", "обман", "це точно", "scam", "safe" , "using",
-                "document", "why", "storage"
+                "document", "why", "storage", "who", "what", "how"
             };
             if (concerns.Any(keyword => lowerText.Contains(keyword)))
             {
@@ -78,7 +78,7 @@ public class UpdateHandler(
             stateService.SetUserData(chatId, state == BotState.WaitingForPassport ? "passportText" : "vehicleDocText", extractedText);
             
             await bot.SendTextMessageAsync(chatId,
-                $"Extracted text:\n\n{EscapeMarkdownV1(extractedText)}\n\nIs this information correct?",
+                $"Extracted text:\n\n{EscapeMarkdownV1(extractedText)}\n\nIs this information correct? (yes/no)",
                 replyMarkup: new ReplyKeyboardMarkup(new[]
                 {
                     new[] { new KeyboardButton("Yes"), new KeyboardButton("No") }
@@ -97,7 +97,7 @@ public class UpdateHandler(
         {
             case BotState.WaitingForPassport:
             case BotState.WaitingForVehicleDoc:
-                if (message.Text == "Yes")
+                if (string.Equals(message.Text, "Yes", StringComparison.OrdinalIgnoreCase))
                 {
                     if (state == BotState.WaitingForPassport)
                     {
@@ -125,7 +125,7 @@ public class UpdateHandler(
                             cancellationToken: token);
                     }
                 }
-                else if (message.Text == "No")
+                else if (string.Equals(message.Text, "No", StringComparison.OrdinalIgnoreCase))
                 {
                     await bot.SendTextMessageAsync(chatId,
                         state == BotState.WaitingForPassport
@@ -136,7 +136,7 @@ public class UpdateHandler(
                 break;
 
             case BotState.WaitingForConfirmation:
-                if (message.Text == "Yes")
+                if (string.Equals(message.Text, "Yes", StringComparison.OrdinalIgnoreCase))
                 {
                     var passportText = stateService.GetUserData(chatId, "passportText");
                     var vehicleDocText = stateService.GetUserData(chatId, "vehicleDocText");
@@ -161,7 +161,7 @@ public class UpdateHandler(
                         parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown,
                         cancellationToken: token);
                 }
-                else if (message.Text == "No")
+                else if (string.Equals(message.Text, "No", StringComparison.OrdinalIgnoreCase))
                 {
                     stateService.SetState(chatId, BotState.WaitingForPassport);
                     await bot.SendTextMessageAsync(chatId,
@@ -171,7 +171,7 @@ public class UpdateHandler(
                 break;
 
             case BotState.WaitingForPriceConfirmation:
-                if (message.Text == "Agree")
+                if (string.Equals(message.Text, "Agree", StringComparison.OrdinalIgnoreCase))
                 {
                     stateService.SetState(chatId, BotState.Done);
 
@@ -184,7 +184,7 @@ public class UpdateHandler(
                         "Congratulations! Here is your insurance policy:\n\n" + policy,
                         cancellationToken: token);
                 }
-                else if (message.Text == "Disagree")
+                else if (string.Equals(message.Text, "Disagree", StringComparison.OrdinalIgnoreCase))
                 {
                     await bot.SendTextMessageAsync(chatId,
                         "Unfortunately, this is the only available price. If you change your mind, type /start.",
