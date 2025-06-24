@@ -149,10 +149,10 @@ public class UpdateHandler(
 
                     stateService.SetState(chatId, BotState.WaitingForPriceConfirmation);
                     await bot.SendTextMessageAsync(chatId,
-                        "The insurance price is *100 USD*. Do you agree?",
+                        "The insurance price is *100 USD*. Do you agree? (yes/no)",
                         replyMarkup: new ReplyKeyboardMarkup(new[]
                         {
-                            new[] { new KeyboardButton("Agree"), new KeyboardButton("Disagree") }
+                            new[] { new KeyboardButton("Yes"), new KeyboardButton("No") }
                         })
                         {
                             ResizeKeyboard = true,
@@ -171,7 +171,7 @@ public class UpdateHandler(
                 break;
 
             case BotState.WaitingForPriceConfirmation:
-                if (string.Equals(message.Text, "Agree", StringComparison.OrdinalIgnoreCase))
+                if (string.Equals(message.Text, "Yes", StringComparison.OrdinalIgnoreCase))
                 {
                     stateService.SetState(chatId, BotState.Done);
 
@@ -184,7 +184,7 @@ public class UpdateHandler(
                         "Congratulations! Here is your insurance policy:\n\n" + policy,
                         cancellationToken: token);
                 }
-                else if (string.Equals(message.Text, "Disagree", StringComparison.OrdinalIgnoreCase))
+                else if (string.Equals(message.Text, "No", StringComparison.OrdinalIgnoreCase))
                 {
                     await bot.SendTextMessageAsync(chatId,
                         "Unfortunately, this is the only available price. If you change your mind, type /start.",
